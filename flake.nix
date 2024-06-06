@@ -7,12 +7,6 @@
   outputs = { self, nixpkgs, flake-utils, poetry2nix }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      deps = with pkgs;[
-          python311
-	  pwntools
-	  pwncat
-	  pwndbg
-      ];
 
       inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryEnv;
       pythonEnv = mkPoetryEnv {
@@ -20,15 +14,27 @@
 	projectDir = ./.;
       };
 
+      deps = with pkgs;[
+          python311
+	  poetry
+	  pwntools
+	  pwncat
+	  gdb
+	  pwndbg
+
+	  pythonEnv
+      ];
+
+
       fhs = pkgs.buildFHSUserEnv {
 	name = "fhs-shell";
-	targetPkgs = pkgs: deps ++ [pythonEnv];
+	targetPkgs = pkgs: deps;
       };
+
+      fhsScript = pkgs.writeShellScriptBin "fhs" "nix develop .#fhs";
     in {
       devShells.default = pkgs.mkShell {
-        packages = deps ++ [pythonEnv];
-	shellHook = ''
-	'';
+        packages = deps ++ [fhsScript];
       };
 
       devShells.fhs = fhs.env;
